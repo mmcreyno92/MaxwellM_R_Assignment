@@ -1,0 +1,275 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+I began by opening the shell by going to RStudio -> Tools -> Shell.  I then copied the snp_position.txt and fang_et_al_genotypes.txt into my EEOB546_R_Assignment using
+
+```{r}
+cp snp_position.txt ../../../EEOB546_R_Assignment/
+```
+```{r}
+cp fang_et_al_genotypes.txt ../../../EEOB545_R_Assignment/
+```
+
+While I was in the R console based command shell I used multiple commands to inspect the data sets.
+
+Its always a good idea to check your data set before loading it onto R so I used commands in the shell to look at the file size 
+
+```{r}
+ls -lh fang_et_al_genotypes.txt 
+```
+```{r}
+ls -lh snp_position.txt 
+```
+
+File size of fang_et_al_genotypes.txt was 11M and snp_position.txt was 81K
+
+I also used it for inspecting the rows of data they contain
+```{r}
+wc -l fang_et_al_genotypes.txt 
+```
+```{r}
+wc -l snp_position.txt
+```
+fang_et_al_genotypes.txt had 2783 lines and snp_positions.txt had 984 lines
+
+Using the head command in the shell produced a large amount of text for both data sets
+```{r}
+head snp_position.txt
+```
+```{r}
+head fang_et_al_genotypes.txt
+```
+
+I did not find the information produced from running the head command very helpful.
+
+Now I will move on to data exploration that I performed IN the R studio console and not using the shell option from R Studio.
+
+If you chose not to import the data via the R based shell console you can also import data directly via R studio
+
+To do this next part PLEASE IMPORT THE fang_et_al_genotypes.txt AND the snp_position.txt files before running the codes or else they will not work! 
+
+
+I looked at the snp_position and fang_et_al_genotype data using the file.show command
+```{r}
+file.show("snp_position.txt")
+```
+```{r}
+file.show("fang_et_al_genotypes.txt")
+```
+
+Next I assigned variables to the files after discovering they were delimited (otherwise the data sets wouldn't look correct in viewer)
+```{r}
+snp_position <- read.delim(file = "snp_position.txt")
+```
+```{r}
+fang_et_al_genotypes <- read.delim(file = "fang_et_al_genotypes")
+```
+
+I checked the the first few rows of data using the head command
+```{r}
+head(fang_et_al_genotypes)
+```
+```{r}
+head(snp_position)
+```
+
+Then I checked the last few columns of data using the tail command 
+```{r}
+tail(fang_et_al_genotypes)
+```
+```{r}
+tail(snp_position)
+```
+
+As a sanity check to make sure that both files were actually data frames I used the class command
+```{r}
+class(fang_et_al_genotypes)
+```
+```{r}
+class(snp_position)
+```
+This confirmed they were indeed data.frames meaning they were ready for some data manipulation
+
+Finally to get the number of rows and columns for each file I used 
+```{r}
+dim(fang_et_al_genotypes)
+```
+```{r}
+dim(snp_position)
+```
+
+DATA MANIPULATION
+
+Extracting the maize and teosinte data, this is necessary to get just the groups we want for downstream analysis
+
+```{r}
+fang_genotypes_maize <- fang_et_al_genotypes[fang_et_al_genotypes$Group == 'ZMMIL' | fang_et_al_genotypes$Group == 'ZMMLR' | fang_et_al_genotypes == 'ZMMMR', ]
+```
+```{r}
+fang_genotypes_teosinte <- fang_et_al_genotypes[fang_et_al_genotypes$Group == 'ZMPBA' | fang_et_al_genotypes$Group == 'ZMPIL' | fang_et_al_genotypes == 'ZMPJA', ]
+
+```
+
+Next I transposed the merged maize and teosinte data so they can be later merged with the snp_position data
+
+```{r}
+transposed_fang_teosinte <- t(fang_genotypes_teosinte)
+```
+```{r}
+transposed_fang_maize <- t(fang_genotypes_maize)
+```
+
+Now with the transposed data I wanted to remove the headers from them to allow for proper joining
+```{r}
+headerless_trans_teo <- transposed_fang_teosinte[-c(1,2,3), ]
+```
+```{r}
+headerless_trans_maize <- transposed_fang_maize[-c(1,2,3), ]
+```
+
+
+Time to merge the files together
+```{r}
+merged_teosinte <-cbind(snp_position, headerless_trans_teo)
+
+```
+```{r}
+merged_maize <-cbind(snp_position, headerless_trans_maize)
+```
+
+These each had some excess columns I didn't want so I removed the uneccessary columns
+
+```{r}
+cleaned_merged_teosinte <- subset(merged_teosinte, , -c(cdv_marker_id, alt_pos, mult_positions, amplicon, cdv_map_feature.name, gene, candidate.random, Genaissance_daa_id, Sequenom_daa_id, count_amplicons, count_cmf, count_gene))
+
+```
+```{r}
+cleaned_merged_maize <- subset(merged_maize, , -c(cdv_marker_id, alt_pos, mult_positions, amplicon, cdv_map_feature.name, gene, candidate.random, Genaissance_daa_id, Sequenom_daa_id, count_amplicons, count_cmf, count_gene))
+
+```
+
+I then removed the rownames for each of these
+```{r}
+rownames(cleaned_merged_maize <- NULL)
+```
+```{r}
+rownames(cleaned_merged_teosinte <- NULL)
+```
+
+I next want to sort the SNP position to do this I must convert my position column into a numeric or else proper sorting would not occur
+```{r}
+cleaned_merged_maize$Position <- as.numeric(as.character(cleaned_merged_maize$Position))
+
+```
+```{r}
+cleaned_merged_teosinte$Position <- as.numeric(as.character(cleaned_merged_teosinte$Position))
+
+```
+
+Now I need to use dpylr package so I made sure it was installed and then activated it
+```{r}
+library(dplyr)
+```
+
+Data sorting was performed using the dpylr package's arrange
+```{r}
+maize_increase <- arrange(cleaned_merged_maize, Position)
+```
+```{r}
+teo_increase <- arrange(cleaned_merged_teosinte, Position)
+```
+```{r}
+maize_decrease <- arrange(cleaned_merged_maize, desc(Position))
+
+```
+```{r}
+teo_decrease <- arrange(cleaned_merged_teosinte, desc(Position))
+```
+
+The assignment required that we encode missing data wit specific characters, I did this on each of the maize and teo increase/decrease data sets
+
+```{r}
+teo_increase[is.na(teo_increase)] <- "?"
+
+```
+```{r}
+maize_increase[is.na(maize_increase)] <- "?"
+```
+```{r}
+
+teo_decrease[is.na(teo_decrease)] <- "-"
+
+```
+```{r}
+maize_decrease[is.na(maize_decrease)] <- "-"
+```
+
+For the final step of this section I wanted to create separate files for each of the chromosomes in maize and teosinte in increasing and decreasing amounts equalling 40 total files 
+
+```{r}
+Chrm1_maize_incr <- maize_increase[maize_increase$Chromosome ==1, ]
+Chrm2_maize_incr <- maize_increase[maize_increase$Chromosome ==2, ]
+Chrm3_maize_incr <- maize_increase[maize_increase$Chromosome ==3, ]
+Chrm4_maize_incr <- maize_increase[maize_increase$Chromosome ==4, ]
+Chrm5_maize_incr <- maize_increase[maize_increase$Chromosome ==5, ]
+Chrm6_maize_incr <- maize_increase[maize_increase$Chromosome ==6, ]
+Chrm7_maize_incr <- maize_increase[maize_increase$Chromosome ==7, ]
+Chrm8_maize_incr <- maize_increase[maize_increase$Chromosome ==8, ]
+Chrm9_maize_incr <- maize_increase[maize_increase$Chromosome ==9, ]
+Chrm10_maize_incr <- maize_increase[maize_increase$Chromosome ==10, ]
+```
+
+```{r}
+Chrm1_maize_dec <- maize_decrease[maize_decrease$Chromosome ==1, ]
+Chrm2_maize_dec <- maize_decrease[maize_decrease$Chromosome ==2, ]
+Chrm3_maize_dec <- maize_decrease[maize_decrease$Chromosome ==3, ]
+Chrm4_maize_dec <- maize_decrease[maize_decrease$Chromosome ==4, ]
+Chrm5_maize_dec <- maize_decrease[maize_decrease$Chromosome ==5, ]
+Chrm6_maize_dec <- maize_decrease[maize_decrease$Chromosome ==6, ]
+Chrm7_maize_dec <- maize_decrease[maize_decrease$Chromosome ==7, ]
+Chrm8_maize_dec <- maize_decrease[maize_decrease$Chromosome ==8, ]
+Chrm9_maize_dec <- maize_decrease[maize_decrease$Chromosome ==9, ]
+Chrm10_maize_dec <- maize_decrease[maize_decrease$Chromosome ==10, ]
+```
+
+```{r}
+Chrm1_teo_incr <- teo_increase[teo_increase$Chromosome ==1, ]
+Chrm2_teo_incr <- teo_increase[teo_increase$Chromosome ==2, ]
+Chrm3_teo_incr <- teo_increase[teo_increase$Chromosome ==3, ]
+Chrm4_teo_incr <- teo_increase[teo_increase$Chromosome ==4, ]
+Chrm5_teo_incr <- teo_increase[teo_increase$Chromosome ==5, ]
+Chrm6_teo_incr <- teo_increase[teo_increase$Chromosome ==6, ]
+Chrm7_teo_incr <- teo_increase[teo_increase$Chromosome ==7, ]
+Chrm8_teo_incr <- teo_increase[teo_increase$Chromosome ==8, ]
+Chrm9_teo_incr <- teo_increase[teo_increase$Chromosome ==9, ]
+Chrm10_teo_incr <- teo_increase[teo_increase$Chromosome ==10, ]
+```
+
+```{r}
+Chrm1_teo_dec <- teo_decrease[teo_decrease$Chromosome ==1, ]
+Chrm2_teo_dec <- teo_decrease[teo_decrease$Chromosome ==2, ]
+Chrm3_teo_dec <- teo_decrease[teo_decrease$Chromosome ==3, ]
+Chrm4_teo_dec <- teo_decrease[teo_decrease$Chromosome ==4, ]
+Chrm5_teo_dec <- teo_decrease[teo_decrease$Chromosome ==5, ]
+Chrm6_teo_dec <- teo_decrease[teo_decrease$Chromosome ==6, ]
+Chrm7_teo_dec <- teo_decrease[teo_decrease$Chromosome ==7, ]
+Chrm8_teo_dec <- teo_decrease[teo_decrease$Chromosome ==8, ]
+Chrm9_teo_dec <- teo_decrease[teo_decrease$Chromosome ==9, ]
+Chrm10_teo_dec <- teo_decrease[teo_decrease$Chromosome ==10, ]
+```
+
+With all of these files created I then wanted to save them as .txt files to push on to github
+
+
