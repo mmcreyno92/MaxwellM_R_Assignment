@@ -1,0 +1,8 @@
+---
+title: "Maki_Review"
+author: "JMaki"
+date: "October 17, 2017"
+output: html_document
+---
+
+-the first command that was supposed to bring the fang et al and snp datasets into the global environment didn't seem to be working for me. I think this is because you conducted the initial inspection in the shell as opposed to in R studio. When you loaded the datasets into the global environment, the fang et al genotypes was missing the ".txt" so I had to add that to the read.delim command to get the command to run. Your notes are very helpful in decyphering what is going on with your scripts! Besides that, it seems as though the scripts worked fine and would generate the indicated fines. I did have an issue running the transpose command where it was talking an extremely long time to run. After 30 minutes, I just gave up and attempted to re-open the project and run it again. After another 15 minutes, the transpose command still didn't seem to work and I just killed the script. I'm not sure if this was an issue with my computer or what but I was not able to continue to run the code (though I was able to run transpose on both my and the previous student's script I had run fine). When I looked though the rest of the code though, it appeared as though everything would work the way you described!
